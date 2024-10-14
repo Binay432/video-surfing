@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { DB_NAME } from "../constants.js";
+import { app } from "../app.js";
 
 
 const connectDB = async () => {
@@ -7,10 +8,12 @@ const connectDB = async () => {
 
         // we can hold the referecne of the connection 
         const connectionInstance = await mongoose.connect(`${process.env.MONGODB_URI}/${DB_NAME}`);
-        
+        app.on("error", (error) => {
+            console.log("ERROR: ", error);
+            throw error;
+        })
         //it's always a good approach to console in which host the connection is used
         // as there's  db for prod, dev  is different 
-
         console.log(`\n MongoDB connected !! DB Host: ${connectionInstance.connection.host}`);
 
     }catch (error) {
