@@ -19,4 +19,13 @@ app.use(express.static("public"));
 
 // cookieparser
 app.use(cookieParser())
+
+
+//routes import 
+import userRouter from './routes/user.routes.js'
+
+//routes decleration 
+// it says when "/users" is being called, transfer the control to userRouter file 
+app.use("/api/v1/users", userRouter);
+
 export { app }
