@@ -7,7 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 const registerUser = asyncHandler(async (req, res) => {
     // Get user data from validation based on built data model
     const { fullName, email, username, password } = req.body;
-    
+
     // check validation all fields are included 
     if(
         [fullName, email, username, password].some((field) => 
@@ -17,7 +17,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // check if user already exists
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or:[{ username }, { email }]
     })
 
@@ -29,7 +29,14 @@ const registerUser = asyncHandler(async (req, res) => {
     // as express give direct access to body, multer middlewares provide an excess to files
     // avatar will have multiple fields like format, size, etcc in which first field i.e., [0] through which file path is taken 
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImagge[0]?.path;
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+    // optional chaining can cause issue sometime, specially for optional data 
+    // like in coverImageLocalPath, thus here, classical methods is used 
+    let coverImageLocalPath;
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
+        coverImageLocalPath = req.files.coverImage[0].path;
+    }
 
     // check for avatar 
     if(!avatarLocalPath) {
@@ -42,7 +49,7 @@ const registerUser = asyncHandler(async (req, res) => {
     if(!avatar) {
         throw new ApiError(400, "Avatar file is required")
     }
-
+    
     // create user object - create entry in db 
     const user = await User.create({
         fullName,

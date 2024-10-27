@@ -1,11 +1,11 @@
 import mongoose, {Schema} from "mongoose";
 import bcrypt from "bcrypt"
-import jwt, { sign } from "jsonwebtoken"
+import jwt from "jsonwebtoken"
 
 const userSchema = new Schema({
-    userName: {
+    username: {
         type: String,
-        required: true,
+        required: [true, 'Username is required'],
         unique: true,
         lowercase: true,
         trim: true,
@@ -24,15 +24,15 @@ const userSchema = new Schema({
         trim: true,
         index: true,
     },
-    userName: {
+    avatar: {
         type: String,   // cloudinary url
         required: true,
 
     },
-    coverImage : {
+    coverImage: {
         type: String,   //cloudinary url 
     },
-    watchHistory : [
+    watchHistory: [
         {
             type: Schema.Types.ObjectId,
             ref: "Video"
@@ -40,7 +40,7 @@ const userSchema = new Schema({
     ],
     password: {
         type: String,
-        required : [true, 'Password is required!']
+        required: [true, 'Password is required!']
     },
     refreshToken: {
         type: String
