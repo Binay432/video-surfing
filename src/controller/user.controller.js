@@ -224,7 +224,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 const changeCurrentPassword = asyncHandler(async(req, res) => {
     const {oldPassword, newPassword} = req.body;
-    const user = await User.findByIdAndDelete(req.user?._id)
+    const user = await User.findById(req.user?._id)
 
     if(!user){
         throw new ApiError(401, "User not found!")
@@ -247,7 +247,9 @@ const changeCurrentPassword = asyncHandler(async(req, res) => {
 const getCurrentUser = asyncHandler(async(req, res) => {
     return res
     .status(200)
-    .json(200, req.user, "Current user fetched successfully")   //depends on auth middelware 
+    .json(new ApiResponse(
+        200, req.user, "Current user fetched successfully")   //depends on auth middelware 
+    )    
 })
 
 const updateAccountDetails = asyncHandler(async(req, res) => {
@@ -257,7 +259,7 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
         throw new ApiError(400, "All fields are required!")
     }
 
-    const user = User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
@@ -337,6 +339,92 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
         new ApiResponse(200, user, "Cover image updated succesfully!")
     )
 })
+
+const getUserChannelProfile = asyncHandler(async(req, res) => {
+    console.log("Inside get user channel profile method....!")
+    const {username} = req.params   //get user from param 
+
+    if(!username?.trim()) {
+        throw new ApiError(400, "username is missing")
+    }
+
+    // aggregate pipeline implimentation to get subsicriber and subscribed 
+    const channel = await User.aggregate([
+        // first pipeline: filter document based in username
+        {
+            $match: {
+                username: username?.toLowerCase()   
+            }
+        },
+        // second pipeline: find subscriber 
+        {
+            $lookup: {
+                from: "subscriptions",   // look into subscriptons model
+                localField: "_id",      // look with the help of _id
+                foreignField: "channel",    // look for channel (subscriber)
+                as: "subscribers"   // what to called the filter data
+            }
+        },
+        // third pipeline: find to whom user have subscribed 
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber", // look to whom the user have subscribed 
+                as: "susbscribedTo"
+            }
+        },
+        // fourth pipeline: get subscriber and subscribedTo count 
+        {   
+            // add the field to user 
+            $addFields: {
+                subscribersCount: {
+                    $size: { $ifNull: ["$subscribers", []]}
+                },
+                channelsSubscribedToCount: {
+                    $size:  { $ifNull: ["$subscribedTo", []]} 
+                },
+                // is subscribed check 
+                isSubscribed: {
+                    $cond: {
+                        if: {$in: [req.user?._id,"$subscribers.subscriber"]},
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            // gives projection of a selected things instead of all (Flags)
+            $project: {
+                fullName: 1,
+                username: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1 
+            }
+        }
+    ])
+
+    // Check if user have channel
+    if (!channel?.length) {
+        throw new ApiError(404, "channel does not exists")
+    }
+
+    // console.log(`User Channel is: ${JSON.stringify(channel, null, 2)}`);
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, channel[0], "User channel fetched successfully")
+    )
+})
+
+
+
 export { 
     registerUser,
     loginUser,
@@ -346,5 +434,6 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile
 };   
