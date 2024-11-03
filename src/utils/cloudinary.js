@@ -2,6 +2,7 @@ import {v2 as cloudinary} from "cloudinary"
 import fs from "fs" // node service to manage file system
 
 
+
 // Configuration
 cloudinary.config({ 
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -30,5 +31,30 @@ const uploadOnCloudinary = async (localFilePath) => {
     }
 }
 
-export {uploadOnCloudinary}
+const deleteFromCloudinary = async (filePublicId, resourceType) => {
+    try{
+
+        if(!filePublicId) {
+            return "Public id not found"
+        }
+
+        const response = await cloudinary.uploader.destroy(filePublicId,{
+            type:"upload",
+            resource_type: resourceType
+        })
+
+        if (!response){
+            return "Error occured while deleting file"
+        }
+        
+        return response
+    }catch(error) {
+        console.log(`Error occur on deleting from cloudinary: ${error}`)
+        return error
+    }
+}
+export {
+    uploadOnCloudinary,
+    deleteFromCloudinary
+}
 
