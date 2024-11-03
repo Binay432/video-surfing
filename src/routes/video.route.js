@@ -3,7 +3,9 @@ import { verifyJwt } from "../middlewares/auth.middleware.js";
 import { 
     getVideoById, 
     publishAVideo,
-    deleteVideo
+    deleteVideo,
+    updateVideo,
+    updateThumbnail
 } from "../controller/video.controller.js";
 import {upload} from "../middlewares/multer.middleware.js"
 
@@ -26,5 +28,6 @@ router.route('/publish-video').post(
 )
 router.route('/get-video/:videoId').get(getVideoById)
 router.route('/delete-video/:videoId').delete(deleteVideo)
-
+router.route('/update-video').patch(upload.single('videoFile'),updateVideo)
+router.route('/update-thumbnail').patch(upload.single('thumbnail'),updateThumbnail)
 export default router; 

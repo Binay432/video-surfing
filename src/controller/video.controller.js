@@ -4,7 +4,7 @@ import {User} from "../models/user.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
-import {deleteFromCloudinary, uploadOnCloudinary} from "../utils/cloudinary.js"
+import {deleteFromCloudinary, updateFileInCloudinary, uploadOnCloudinary} from "../utils/cloudinary.js"
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -106,10 +106,111 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    //TODO: update video details like title, description, thumbnail
+    const owner = await User.findById(req.user?._id)
+
+    if(!videoId){
+        throw new ApiError(400, 'Video id is required')
+    }
+
+    if(!owner){
+        throw new ApiError(400, 'User is not found')
+    }
+    const video = await Video.findById(videoId)
+
+    if(!video) {
+        throw new ApiError(404, 'Video not found')
+    }
+
+    const videoPublicId = video.videoPublicId
+
+    const videofileLocalPath = req.files?.videoFile[0]?.path
+    if(!videofileLocalPath) {
+        throw new ApiError(400, "Video file is required")
+    }
+
+    const updatedVideoFile = await updateFileInCloudinary(videofileLocalPath, videoPublicId)
+
+    if(!updatedVideoFile) {
+        throw new ApiError(500, 'Internal server error while updating video')
+    }
+
+    const updatedVideo = await Video.findByIdAndUpdate(
+        video._id,
+        {
+            $set:{
+                videoFile: updatedVideoFile.url,
+                videoPublicId: updatedVideoFile.public_id
+            }
+        },
+        {
+            new: true
+        }
+    )
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            updatedVideo,
+            "Video updated successfully"
+        )
+    )
 
 })
 
+const updateThumbnail = asyncHandler(async (req, res) => {
+    const { videoId } = req.params
+    const owner = await User.findById(req.user?._id)
+
+    if(!videoId){
+        throw new ApiError(400, 'Video id is required')
+    }
+
+    if(!owner){
+        throw new ApiError(400, 'User is not found')
+    }
+    const video = await Video.findById(videoId)
+
+    if(!video) {
+        throw new ApiError(404, 'Video not found')
+    }
+
+    const thumbnailPublicId = video.thumbnailPublicId
+
+    const thumbnailfileLocalPath = req.files?.thumbnail[0]?.path
+    if(!thumbnailfileLocalPath) {
+        throw new ApiError(400, "Video file is required")
+    }
+
+    const updatedThumbnailFile = await updateFileInCloudinary(thumbnailfileLocalPath, thumbnailPublicId)
+
+    if(!updatedThumbnailFile) {
+        throw new ApiError(500, 'Internal server error while updating video')
+    }
+
+    const updatedVideo = await Video.findByIdAndUpdate(
+        video._id,
+        {
+            $set:{
+                videoFile: updatedThumbnailFile.url,
+                thumbnailPublicId: updatedThumbnailFile.public_id
+            }
+        },
+        {
+            new: true
+        }
+    )
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            updatedVideo,
+            "Video updated successfully"
+        )
+    )
+
+})
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     const owner = await User.findById(req.user?._id)
@@ -167,6 +268,7 @@ export {
     publishAVideo,
     getVideoById,
     updateVideo,
+    updateThumbnail,
     deleteVideo,
     togglePublishStatus
 }

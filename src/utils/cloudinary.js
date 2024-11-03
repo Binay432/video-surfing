@@ -53,8 +53,31 @@ const deleteFromCloudinary = async (filePublicId, resourceType) => {
         return error
     }
 }
+
+const updateFileInCloudinary = async (localfilePath, filePublicId) => {
+    try{
+        if(!filePublicId){
+            return 'File id required'
+        }
+
+        const response = await cloudinary.uploader.upload(localfilePath,{
+            public_id: filePublicId,
+            overwrite: true 
+        })
+
+        if(!response) {
+            return 'Error occured while updating file'
+        }
+        fs.unlinkSync(localfilePath);
+        return response
+
+    }catch(error){
+        return error
+    }
+}
 export {
     uploadOnCloudinary,
-    deleteFromCloudinary
+    deleteFromCloudinary,
+    updateFileInCloudinary
 }
 
